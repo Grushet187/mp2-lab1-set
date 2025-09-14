@@ -9,76 +9,169 @@
 
 TBitField::TBitField(int len)
 {
+    if (len < 0) {
+        throw invalid_argument("len<0");
+    }
+    BitLen = len;
+    MemLen = (len == 0) ? 1 : (len + sizeof(TELEM) * 8 - 1) / (sizeof(TELEM) * 8);
+    pMem = new TELEM[MemLen]{ 0 };
 }
 
 TBitField::TBitField(const TBitField &bf) // конструктор копирования
 {
+    BitLen = bf.BitLen;
+    MemLen = bf.MemLen;
+    pMem = new TELEM[MemLen];
+    for (int i = 0; i < MemLen; i++) {
+        pMem[i] = bf.pMem[i];
+    }
 }
 
 TBitField::~TBitField()
 {
+    delete[] pMem;
 }
 
 int TBitField::GetMemIndex(const int n) const // индекс Мем для бита n
 {
-    return 0;
+    if (n<0 || n>=BitLen) {
+        throw invalid_argument("n<0 or n>BitLen");
+    }
+    return int(n / (sizeof(TELEM) * 8));
 }
 
 TELEM TBitField::GetMemMask(const int n) const // битовая маска для бита n
 {
-    return TELEM();
+    if (n < 0 || n >= BitLen) {
+        throw invalid_argument("n<0 or n>BitLen");
+    }
+    int bit_pos = n % (sizeof(TELEM) * 8);
+    return TELEM(1) << bit_pos;
 }
 
 // доступ к битам битового поля
 
 int TBitField::GetLength(void) const // получить длину (к-во битов)
 {
-  return 0;
+  return BitLen;
 }
 
 void TBitField::SetBit(const int n) // установить бит
 {
+    if (n < 0 || n >= BitLen) {
+        throw invalid_argument("n<0 or n>BitLen");
+    }
+    int ind = GetMemIndex(n);
+    TELEM mask = GetMemMask(n);
+    pMem[ind] |= mask;
 }
 
 void TBitField::ClrBit(const int n) // очистить бит
 {
+    if (n < 0 || n >= BitLen) {
+        throw invalid_argument("n<0 or n>BitLen");
+    }
+    int ind = GetMemIndex(n);
+    TELEM mask = ~GetMemMask(n);
+    pMem[ind] &= mask;
 }
 
 int TBitField::GetBit(const int n) const // получить значение бита
 {
-  return 0;
+    if (n < 0 || n >= BitLen) {
+        throw invalid_argument("n<0 or n>BitLen");
+    }
+    int ind = GetMemIndex(n);
+    TELEM mask = GetMemMask(n);
+    return int((pMem[ind] & mask) != 0);
 }
 
 // битовые операции
 
 TBitField& TBitField::operator=(const TBitField &bf) // присваивание
 {
+    if (this == &bf) return *this;
+    BitLen = bf.BitLen;
+    MemLen = bf.MemLen;
+    delete[] pMem;
+    pMem = new TELEM[MemLen];
+    for (int i = 0; i != MemLen; i++) {
+        pMem[i] = bf.pMem[i];
+    }
     return *this;
 }
 
 int TBitField::operator==(const TBitField &bf) const // сравнение
 {
-  return 0;
+    if (BitLen == bf.BitLen) {
+        for (int i = 0; i != MemLen; i++) {
+            if (pMem[i] != bf.pMem[i]) {
+                return 0;
+            }
+        }
+        return 1;
+  }
+    return 0;
 }
 
 int TBitField::operator!=(const TBitField &bf) const // сравнение
 {
-  return 0;
+    if (BitLen == bf.BitLen) {
+        for (int i = 0; i < MemLen; i++) {
+            if (pMem[i] != bf.pMem[i]) {
+                return 1;
+            }
+        }
+        return 0;
+  }
+  return 1;
 }
 
 TBitField TBitField::operator|(const TBitField &bf) // операция "или"
 {
-    return TBitField(0);
+    int maxLen = max(BitLen, bf.BitLen);
+    TBitField res(maxLen);
+    for (int i = 0; i < MemLen; i++) {
+        if (i < res.MemLen) res.pMem[i] |= pMem[i];
+    }
+    for (int i = 0; i < bf.MemLen; i++) {
+        if (i < res.MemLen) res.pMem[i] |= bf.pMem[i];
+    }
+    return res;
 }
 
 TBitField TBitField::operator&(const TBitField &bf) // операция "и"
 {
-    return TBitField(0);
+    int minLen = (BitLen < bf.BitLen) ? BitLen : bf.BitLen;
+
+    // Создаем результат минимальной длины
+    TBitField result(minLen);
+
+    // Простая и надежная реализация через GetBit/SetBit
+    for (int i = 0; i < minLen; i++) {
+        if (GetBit(i) && bf.GetBit(i)) {
+            result.SetBit(i);
+        }
+    }
+
+    return result;
 }
 
 TBitField TBitField::operator~(void) // отрицание
 {
-    return TBitField(0);
+    TBitField result(BitLen);
+    for (int i = 0; i < MemLen; i++) {
+        result.pMem[i] = ~pMem[i];
+    }
+    if (BitLen > 0) {
+        int extraBits = BitLen % (sizeof(TELEM) * 8);
+        if (extraBits != 0) {
+            TELEM mask = (TELEM(1) << extraBits) - 1;
+            result.pMem[MemLen - 1] &= mask;
+        }
+    }
+
+    return result;
 }
 
 // ввод/вывод
