@@ -142,18 +142,14 @@ TBitField TBitField::operator|(const TBitField &bf) // операция "или"
 
 TBitField TBitField::operator&(const TBitField &bf) // операция "и"
 {
-    int minLen = (BitLen < bf.BitLen) ? BitLen : bf.BitLen;
-
-    // Создаем результат минимальной длины
-    TBitField result(minLen);
-
-    // Простая и надежная реализация через GetBit/SetBit
+    int maxLen = max(BitLen, bf.BitLen);
+    TBitField result(maxLen);
+    int minLen = min(BitLen, bf.BitLen);
     for (int i = 0; i < minLen; i++) {
         if (GetBit(i) && bf.GetBit(i)) {
             result.SetBit(i);
         }
     }
-
     return result;
 }
 
@@ -178,10 +174,38 @@ TBitField TBitField::operator~(void) // отрицание
 
 istream &operator>>(istream &istr, TBitField &bf) // ввод
 {
+    int length;
+    istr >> length;
+    if (length <= 0) {
+        istr.setstate(ios::failbit);
+        return istr;
+    }
+    if (bf.BitLen != length) {
+        TBitField temp(length);
+        bf = temp;
+    }
+    char ch;
+    for (int i = 0; i < bf.BitLen; i++) {
+        istr >> ch;
+
+        if (ch == '1') {
+            bf.SetBit(i);
+        }
+        else if (ch == '0') {
+            bf.ClrBit(i);
+        }
+        else {
+            istr.setstate(ios::failbit);
+            break;
+        }
+    }
     return istr;
 }
 
 ostream &operator<<(ostream &ostr, const TBitField &bf) // вывод
 {
+    for (int i = 0; i < bf.GetLength(); i++) {
+        ostr << bf.GetBit(i);
+    }
     return ostr;
 }
