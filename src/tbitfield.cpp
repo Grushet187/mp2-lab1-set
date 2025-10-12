@@ -174,29 +174,20 @@ TBitField TBitField::operator~(void) // отрицание
 
 istream &operator>>(istream &istr, TBitField &bf) // ввод
 {
-    int length;
-    istr >> length;
-    if (length <= 0) {
-        istr.setstate(ios::failbit);
-        return istr;
+    string input;
+    istr >> input;
+    if (input.length() != bf.GetLength()) {
+        throw invalid_argument("invalid bitfield");
     }
-    if (bf.BitLen != length) {
-        TBitField temp(length);
-        bf = temp;
-    }
-    char ch;
-    for (int i = 0; i < bf.BitLen; i++) {
-        istr >> ch;
-
-        if (ch == '1') {
+    for (int i = 0; i < input.length(); i++) {
+        if (input[i] == '1') {
             bf.SetBit(i);
         }
-        else if (ch == '0') {
+        else if (input[i] == '0') {
             bf.ClrBit(i);
         }
         else {
-            istr.setstate(ios::failbit);
-            break;
+            throw invalid_argument("invalid bitfield");
         }
     }
     return istr;

@@ -137,22 +137,21 @@ TSet TSet::operator~(void) // дополнение
 
 istream &operator>>(istream &istr, TSet &s) // ввод
 {
-    string bitString;
-    istr >> bitString;
-    if (bitString.length() > s.MaxPower) {
-        istr.setstate(ios::failbit);
-        return istr;
-    }
-    for (int i = 0; i < s.MaxPower; i++) {
+    string input;
+    istr >> input;
+    for (int i = 0; i < s.GetMaxPower(); i++) {
         s.DelElem(i);
     }
-    for (int i = 0; i < bitString.length(); i++) {
-        if (bitString[i] == '1') {
+    int lengthToProcess = min((int)input.length(), s.GetMaxPower());
+    for (int i = 0; i < lengthToProcess; i++) {
+        if (input[i] == '1') {
             s.InsElem(i);
         }
-        else if (bitString[i] != '0') {
-            istr.setstate(ios::failbit);
-            break;
+        else if (input[i] == '0') {
+            s.DelElem(i);
+        }
+        else {
+            throw invalid_argument("bad elem");
         }
     }
     return istr;
